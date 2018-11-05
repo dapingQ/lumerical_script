@@ -1,0 +1,97 @@
+# tapered waveguide mode convertor
+
+# material
+material_core = "Si3N4 (Silicon Nitride) - Phillip";
+
+# define the geometry 
+
+wg_h = 0.22e-6; # thickness
+w_bottom = 0.5e-6; # width of the large side
+w_top = 0.1e-6; # width of the small side
+input_l = 10e-6; # length of the input 
+taper_l = 40e-6;
+
+newproject; redrawoff;
+V=matrix(6,2);
+V(1,1:2)=[0,-w_bottom/2];
+V(2,1:2)=[input_l,-w_bottom/2];
+V(3,1:2)=[input_l+taper_l,-w_top/2];
+V(4,1:2)=[input_l+taper_l,w_top/2];
+V(5,1:2)=[input_l,w_bottom/2];
+V(6,1:2)=[0,w_bottom/2];
+
+addpoly;
+    set("name","taper");
+    set("z min", 0);
+    set("z max", wg_t);
+    set("vertices", V);
+    set("x", 0);
+    set("y", 0);
+    set("material",material_core);
+
+addmesh;
+    set("name","mesh_taper");
+    set("x min",0);
+    set("x max",input_l+taper_l);
+    set("y",0);
+    set("y span",w_bottom);
+    set("z min", 0);
+    set("z max", wg_t);
+    # enable in X direction and disable in Y,Z directions
+    set("override x mesh",1);
+    # restrict mesh by defining maximum step size
+    set("set maximum mesh step",1);
+    set("dx",5e-9);
+
+addeme;
+    set("background index", 1.45);
+    set("x min",0);
+    set("y",0);
+    set("y span",10*w_bottom);
+    set("z",0.5e-6);
+    set("z span",10*wg_h);
+
+    # set cell properties
+    set("number of cell groups",3);
+    set("group spans",[input_l; taper_l; 5e-6]);
+
+    set("cells",[1; 19; 1]);
+    set("subcell method",[0; 1; 0]);   # 0 = none,  1 = CVCS
+	  
+    # set up ports
+    # port 1
+    select("EME::Ports::port_1");
+    set("use full simulation span",1);
+    set("y",0);
+    set("y span",10*w_bottom);
+    set("z",0);
+    set("z span",10*wg_h);
+    set("mode selection","fundamental mode");	
+    # port 2
+    select("EME::Ports::port_2");
+    set("use full simulation span",1);
+    set("y",0);
+    set("y span",10*w_bottom);
+    set("z",0);
+    set("z span",10*wg_h);
+    set("mode selection","fundamental mode");
+#run;	
+
+# add monitor
+setactivesolver("EME");
+
+addemeprofile;
+    set("name","XY");
+    set("monitor type",3); 
+    set("y",0);
+    set("y span",getnamed("EME","y span"));
+    set("x min",0);
+    set("x max",getnamed("EME","x span"));
+
+addemeprofile;
+    set("name","XZ");
+    set("monitor type",2); 
+    set("z",0);
+    set("z span",getnamed("EME","z span"));
+    set("x min",0);
+    set("x max",getnamed("EME","x span"));
