@@ -1,0 +1,200 @@
+
+######################################################################################################################
+# scriptfile: usr_frequency.lsf                                                                                    #
+#                                                                                                                    #
+# Description: This script file analyses the results of a frequency sweep                                            #
+# in the file frequency_sweep.fsp and returns dispersion, loss, neff, beta, group velocity and group delay           #                                
+# as a function of frequency for a selected mode                                                                     #
+#                                                                                                                    #
+# Copyright 2007 Lumerical Solutions Inc.                                                                            #
+######################################################################################################################
+
+clear;
+
+######################################################################################################################
+#Inputs:                                                                                                             
+track_selected_mode=1;    # 1 if selected mode in the dcard is to be tracked, 0 if not                               
+effective_index= 1 ;      # Only used if track_selected_mode is 0                                                      
+number_of_points=10;      # This is the number of frequency points and                                                 
+                          # should match the number of values in the sweep object                                      
+dcard_number=3;           # The mode number that is to be tracked and saved as dcard, only if track_selected_mode is 1 
+number_of_test_modes=4;   # This is the number of modes to solve for when search for modes
+f1= 100e12;               # The first frequency to sweep, must be the same as that set in the sweep 
+f2= 120e12;               # The first frequency to sweep, must be the same as that set in the sweep 
+######################################################################################################################
+ 
+load("sweep_frequency_dispersion.lms");
+switchtolayout;
+
+#Run the first simulation to set the parameters
+
+if (track_selected_mode==1){
+select("MODE");
+set("number of trial modes",number_of_test_modes);
+set("frequency",f1);
+findmodes;
+
+dname="FDE::data::mode"+num2str(dcard_number);
+cleardcard;
+copydcard(dname,"best");
+runsweep;
+
+#Define arrays of parameters
+neff = matrix(number_of_points);
+loss= matrix(number_of_points);
+gain= matrix(number_of_points);
+omega= matrix(number_of_points);
+beta= matrix(number_of_points);
+freq=matrix(number_of_points);
+lambda=matrix(number_of_points);
+gr_vel= matrix(number_of_points-1);
+gr_index= matrix(number_of_points-1);
+gr_delay=matrix(number_of_points-1);
+dispersion=matrix(number_of_points-2);
+best_n=matrix(number_of_test_modes);
+
+
+# Load each sweep file separately and extract the mode data
+if (fileexists("sweep_1.lms")==0){
+path=pwd;
+cd(path+"/sweep_frequency_dispersion_sweep");}
+
+for(i=1:number_of_points) {
+
+filename="sweep_" + num2str(i);
+load(filename);
+
+# If track_selected_mode=1, get the best overlapping mode
+
+best_temp = bestoverlap("best");
+    cleardcard;
+    copydcard(best_temp,"best");
+
+#Calculate parameters with no derivative
+
+freq(i)= getdata("best","f");
+omega(i)=2*pi*freq(i);
+lambda(i)=c/freq(i);
+neff(i) = getdata("best","neff");
+loss(i) = getdata("best","loss");
+gain(i) = -loss(i);
+beta(i) = 2*pi*real(neff(i))/lambda(i);
+}
+
+freq_c=pinch(transpose(freq(1:number_of_points-1)));
+freq_cc=pinch(transpose(freq_c(1:number_of_points-2)));
+
+
+#Calculate parameters with first derivatives
+for(k=1:(number_of_points-1)) {    
+gr_vel(k)=(omega(k+1)-omega(k))/(beta(k+1)-beta(k));
+gr_index(k)=c/gr_vel(k);
+gr_delay(k)=1/gr_vel(k);
+}
+
+#Calculate parameters with second derivatives
+for(l=1:(number_of_points-2)){
+dispersion(l)=(gr_delay(l+1)-gr_delay(l))/(lambda(l+1)-lambda(l));
+}
+
+#Plot the results
+
+plot(freq,neff,"f","neff");  
+plot(freq,beta,"f","beta (1/m)"); 
+plot(freq,loss,"f","loss (dB/cm)"); 
+plot(freq_cc,dispersion*1e6,"f","dispersion (ps/nm/km)"); 
+plot(freq_c,gr_delay*1e15,"f","group delay (ps/km)"); 
+plot(freq_c,gr_index,"f","group index"); 
+plot(freq_c,gr_vel,"f","group velocity (m/s)"); 
+
+}
+
+#############################################################################
+
+# If track_selected_mode=0, track all the modes
+if (track_selected_mode==0){
+
+select("MODE");
+set("number of trial modes",number_of_test_modes);
+set("use max index",0);
+set("n",effective_index);
+
+runsweep;
+#findmodes;
+
+
+
+#Define arrays of parameters
+neff = matrix(number_of_points,number_of_test_modes);
+loss= matrix(number_of_points,number_of_test_modes);
+gain= matrix(number_of_points,number_of_test_modes);
+omega= matrix(number_of_points,number_of_test_modes);
+beta= matrix(number_of_points,number_of_test_modes);
+freq=matrix(number_of_points,number_of_test_modes);
+freq_c=matrix(number_of_points-1,number_of_test_modes);
+freq_cc=matrix(number_of_points-2,number_of_test_modes);
+lambda=matrix(number_of_points,number_of_test_modes);
+gr_vel= matrix(number_of_points-1,number_of_test_modes);
+gr_index= matrix(number_of_points-1,number_of_test_modes);
+gr_delay=matrix(number_of_points-1,number_of_test_modes);
+dispersion=matrix(number_of_points-2,number_of_test_modes);
+best_n=matrix(number_of_test_modes,number_of_test_modes);
+
+
+# Load each sweep file separately and extract the mode data
+if (fileexists("sweep_1.lms")==0){
+path=pwd;
+cd(path+"\sweep_frequency_dispersion_sweep");}
+
+for(i=1:number_of_points) {
+
+filename="sweep_" + num2str(i);
+load(filename);
+
+for (n=1:number_of_test_modes){
+best="FDE::data::mode"+num2str(n);
+freq(i,n)= getdata(best,"f");
+omega(i,n)=2*pi*freq(i,n);
+lambda(i,n)=c/freq(i,n);
+neff(i,n) = getdata(best,"neff");
+loss(i,n) = getdata(best,"loss");
+gain(i,n) = -loss(i,n);
+beta(i,n) = 2*pi*real(neff(i,n))/lambda(i,n);
+
+}
+}
+
+
+freq_c(1:number_of_points-1)=pinch(transpose(freq(1:number_of_points-1,1)));
+freq_cc(1:number_of_points-2)=pinch(transpose(freq_c(1:number_of_points-2,1)));
+
+
+#Calculate parameters with first derivatives
+for(k=1:(number_of_points-1)) {   
+ 
+for (n=1:number_of_test_modes){
+gr_vel(k,n)=(omega(k+1,n)-omega(k,n))/(beta(k+1,n)-beta(k,n));
+gr_index(k,n)=c/gr_vel(k,n);
+gr_delay(k,n)=1/gr_vel(k,n);
+}
+}
+
+#Calculate parameters with second derivatives
+for(l=1:(number_of_points-2)){
+for (n=1:number_of_test_modes){
+dispersion(l,n)=(gr_delay(l+1,n)-gr_delay(l,n))/(lambda(l+1,n)-lambda(l,n));
+}
+}
+
+plot(freq(1:number_of_points),neff,"f","neff");  
+plot(freq(1:number_of_points),beta,"f","beta (1/m)"); 
+plot(freq(1:number_of_points),loss*1e-2,"f","loss (dB/cm)");  
+plot(freq_cc(1:number_of_points-2),dispersion*1e6,"f","dispersion (ps/nm/km)"); 
+plot(freq_c(1:number_of_points-1),gr_delay*1e15,"f","group delay (ps/km)"); 
+plot(freq_c(1:number_of_points-1),gr_index,"f","group index"); 
+plot(freq_c(1:number_of_points-1),gr_vel,"f","group velocity (m/s)"); 
+
+}
+
+# go back to original directory
+cd(path);

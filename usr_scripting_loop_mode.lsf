@@ -1,0 +1,35 @@
+##############################################################
+# file: scripting1.lsf
+# This file shows how to run multiple simulations using scripting.
+# You should open scripting1.lms before running this script
+##############################################################
+
+# define 10 rod radii to use
+radius = linspace(5e-6,10e-6,6);
+
+# reserve matrix for effective index
+neff = matrix(length(radius));
+
+# start a loop over each desired radius
+for(i=1:length(radius)) {
+
+  # switch to layout mode so that you can edit the objects
+  switchtolayout;
+
+  # set the radius of the object named "rod" to the desired value
+  setnamed("core","radius",radius(i));
+
+  # output which simulation is running
+  ?"Calculating modes, step " + num2str(i) + " of " + num2str(length(radius));
+
+  # calculate the modes
+  findmodes;
+  
+  # collect the effective index (and frequency)
+  neff(i) = getdata("mode1","neff");
+  f = getdata("mode1","f");
+
+} # end of the main loop over the radius
+
+# plot the final results
+plot(radius*1e6,real(neff),"radius (microns)","neff","neff vs radius at " + num2str(c/f*1e6) + " microns");

@@ -1,0 +1,77 @@
+newmode; newmode; redrawoff:
+
+width_c = 1.0e-6; # width of centeral waveguide
+width_s = 0.3e-6; # wdit of side waveguide
+thick_c = 0.7e-6; # thickness of the waveguide layer
+gap = 0.1e-6; # gap between the side and central waveguides
+
+# define both the width and gap of the left or right waveguide if the slot is asym.
+width_l = width_s;
+width_r = width_s;
+gap_l = gap;
+gap_r = gap;
+
+# total width of the slot part
+width_tot = width_c + width_l + width_r + gap_l + gap_r; 
+
+# change material here
+material_core = "SiN";
+material_cld = "SiO2 (Glass) - Palik";
+materials;
+
+# marigin of simulation area 
+width_margin = 2.0e-6;
+thick_margin = 1.0e-6;
+
+# set x as propagation direction, horizontal is 
+Xmin = -2e-6; Xmax = 2e-6;
+Zmin = -thick_margin; Zmax = thick_margin+thick_c;
+Y_span = 2*width_margin + width_tot;
+
+addrect;
+set("name","Cld");
+set("material", material_cld);
+set("y", 0);        
+set("y span", Y_span+1e-6);
+set("z min", Zmin);    
+set("z max", Zmax);
+set("x min", Xmin); 
+set("x max", Xmax);
+
+set("override mesh order from material database",1);
+set("mesh order",3); # similar to "send to back", put the cladding as a background.
+set("alpha", 0.05);
+
+
+# draw waveguide
+addrect;
+set("name", "slot_c"); 
+set("material",material_core);
+set("y", 0); 
+set("y span", width_c);
+set("z min", 0); 
+set("z max", thick_c);
+set("x min", Xmin); 
+set("x max", Xmax);
+
+# left side
+addrect;
+set("name", "slot_l"); 
+set("material",material_core);
+set("y", -gap_l-(width_l+width_c)*0.5); 
+set("y span", width_l);
+set("z min", 0); 
+set("z max", thick_c);
+set("x min", Xmin); 
+set("x max", Xmax);
+
+# right side
+addrect;
+set("name", "slot_l"); 
+set("material",material_core);
+set("y", gap_r+(width_r+width_c)*0.5); 
+set("y span", width_r);
+set("z min", 0); 
+set("z max", thick_c);
+set("x min", Xmin); 
+set("x max", Xmax);

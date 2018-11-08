@@ -1,0 +1,27 @@
+# wg_2D_draw;
+
+# define the paras
+wavelength = 1.55e-6;
+meshsize = 20e-9;
+
+# desired mode number
+modes = 4;
+
+# add 2D FDE (in the plane of cross section, YZ plane)
+addfde;
+set("solver type", "2D X normal"); # x is the propagation direction
+set("x",0);
+set("y",0);
+set("y span", Y_span);
+set("z max", Zmax);
+set("z min", Zmin);
+
+set("wavelength", wavelength);
+
+set("solver type","2D X normal");
+set("define y mesh by","maximum mesh step");
+set("dy", meshsize);
+set("define z mesh by","maximum mesh step");
+set("dz", meshsize);
+
+set("number of trial modes",modes);

@@ -1,0 +1,34 @@
+gap = [0.05e-6:0.05e-6];
+
+#gap = [0.25e-6,]
+D_data = matrix(sweep,30);
+for (i=1:length(gap)) {
+    switchtolayout;
+    setnamed("slot","gap",gap(i));
+#    setnamed("slot","base height",0.8e-6);
+#    setnamed("slot","width1",1e-6);
+#   setnamed("slot","width2",0.4e-6);
+    setanalysis("wavelength",1e-6);
+    setanalysis("number of trial modes",4);
+    
+    findmodes;
+
+    setanalysis("track selected mode",1);
+    setanalysis("detailed dispersion calculation",1);
+    setanalysis("number of points",20);
+    #setanalysis("start wavelength",1e-6);
+    setanalysis("stop wavelength",2e-6);
+    setanalysis("bent waveguide", 1);
+    setanalysis("bend radius", 100e-6);
+    
+    selectmode(1);
+    frequencysweep;
+    f=getdata("frequencysweep","f_D");
+    D_data(i,1:20)=getdata("frequencysweep","D");
+    #write("d_sweep_d_mode.txt",num2str(D));
+}
+plot(c/f*1e6,
+    D_data(1,1:20)*1e6,
+    D_data(2,1:20)*1e6,
+    D_data(3,1:20)*1e6,
+    "Wavelength (um)", "Dispersion (ps/nm/km)",);

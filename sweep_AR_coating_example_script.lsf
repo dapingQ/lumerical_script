@@ -1,0 +1,56 @@
+#########################################################
+# file: sweep_AR_coating_example_script.lsf
+#
+# Description: This script file
+#   is used to generate and run the thickness
+#   sweep as well as plot the results
+#
+# Copyright 2015, Lumerical Solutions, Inc.
+#########################################################
+
+closeall;
+clear;
+
+# add a new sweep and set basic properties
+addsweep;
+setsweep("sweep", "name", "thickness_sweep_script");
+setsweep("thickness_sweep_script", "type", "Ranges");
+
+# define the parameter thickness
+para = struct;
+para.Name = "thickness";
+para.Parameter = "::model::AR structure::thickness";
+para.Type = "Length";
+para.Start = 0.05e-6;
+para.Stop = 0.15e-6;
+para.Units = "microns";
+
+# add the parameter thickness to the sweep
+addsweepparameter("thickness_sweep_script", para);
+
+# define results 
+result_1 = struct;
+result_1.Name = "R";
+result_1.Result = "::model::R::T";
+
+result_2 = struct;
+result_2.Name = "T";
+result_2.Result = "::model::T::T";
+
+# add the results R & T to the sweep
+addsweepresult("thickness_sweep_script", result_1);
+addsweepresult("thickness_sweep_script", result_2);
+setsweep("thickness_sweep_script", "number of points", 10);  
+
+# run the sweep
+runsweep("thickness_sweep_script");
+
+# view the results
+R = getsweepresult("thickness_sweep_script", "R");
+T = getsweepresult("thickness_sweep_script", "T");
+
+plot(R.thickness*1e9, R.T, "AR thickness (nm)","R");
+plot(T.thickness*1e9, T.T, "AR thickness (nm)","T");
+
+#visualize(R);
+#visualize(T);
